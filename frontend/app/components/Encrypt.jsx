@@ -20,28 +20,89 @@ const Encrypt = () => {
     try {
       const res = await axios.post('http://127.0.0.1:5000/encrypt', formData)
       setResult(res.data)
-      setMessage("Encryption successful")
+      setMessage("✅ Encryption successful!")
     } catch (err) {
-      setMessage(err.response?.data?.error || "Encryption failed")
+      setMessage(err.response?.data?.error || "❌ Encryption failed")
     }
+  }
+
+  const handleDownload = () => {
+    if (!result) return;
+
+    const content = JSON.stringify(result, null, 2);
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `encrypted_data_${username || 'user'}.txt`;
+    link.click();
+
+    URL.revokeObjectURL(url);
   }
 
   return (
     <Layout>
-      <h2>Encrypt File</h2>
-      <form onSubmit={handleEncrypt}>
-        <input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required />
-        <input type="file" onChange={e => setFingerprint(e.target.files[0])} required />
-        <input type="file" onChange={e => setFile(e.target.files[0])} required />
-        <button type="submit">Encrypt</button>
-      </form>
-      <p>{message}</p>
-      {result && (
-        <div>
-          <h4>Encrypted Output:</h4>
-          <pre>{JSON.stringify(result, null, 2)}</pre>
-        </div>
-      )}
+      <div className="max-w-xl mx-auto">
+        <h2 className="text-2xl font-bold text-center mb-6">🔐 Encrypt File</h2>
+        <form onSubmit={handleEncrypt} className="bg-white p-6 rounded-lg shadow space-y-4">
+          <div>
+            <label className="block font-semibold">Username</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              className="w-full mt-1 p-2 border border-gray-300 rounded"
+              placeholder="Enter your username"
+            />
+          </div>
+
+          <div>
+            <label className="block font-semibold">Fingerprint Image</label>
+            <input
+              type="file"
+              onChange={(e) => setFingerprint(e.target.files[0])}
+              required
+              className="w-full mt-1"
+            />
+          </div>
+
+          <div>
+            <label className="block font-semibold">File to Encrypt</label>
+            <input
+              type="file"
+              onChange={(e) => setFile(e.target.files[0])}
+              required
+              className="w-full mt-1"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+          >
+            Encrypt
+          </button>
+        </form>
+
+        {message && (
+          <p className="mt-4 text-center text-sm text-blue-600">{message}</p>
+        )}
+
+        {result && (
+          <div className="mt-6 bg-gray-100 p-4 rounded shadow">
+            <h4 className="font-bold mb-2">🧾 Encrypted Output:</h4>
+            <pre className="whitespace-pre-wrap text-sm">{JSON.stringify(result, null, 2)}</pre>
+            <button
+              onClick={handleDownload}
+              className="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+            >
+              Download Encrypted Data
+            </button>
+          </div>
+        )}
+      </div>
     </Layout>
   )
 }

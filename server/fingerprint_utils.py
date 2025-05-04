@@ -72,10 +72,7 @@ def extract_minutiae_features(skeleton):
 
 
 def hash_minutiae(minutiae):
-    """
-    Hash the minutiae features. Here, we'll use a simple method.
-    In a real-world scenario, you would hash the minutiae data more securely.
-    """
+ 
     # A simple way to "hash" the minutiae is to convert them to a string and hash that.
     minutiae_str = ''.join([f"{x[0]},{x[1]}" for x in minutiae])  # Convert to a string
     return hash(minutiae_str)  # Basic hash for demonstration

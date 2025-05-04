@@ -1,14 +1,15 @@
 from flask import Blueprint, request, jsonify
 from app.crypto import hash_fingerprint, derive_key, encrypt_data, decrypt_data
-from app.db import get_fingerprint_table, insert_fingerprint
+from app.db import get_fingerprint_table, insert_fingerprint,get_admin_table
 from app.logger import log_action
 from fingerprint_utils import preprocess_image, extract_minutiae_features, hash_minutiae
-import os
+import os,jwt
 import hashlib
 import numpy as np
 from PIL import Image
 import io
 from flask import request, jsonify
+from app.db import get_logs_table
 from app.db import get_logs_table
 from datetime import datetime
 import cv2
@@ -22,9 +23,10 @@ from app.crypto import derive_key, encrypt_data  # assume you have these functio
 from app.logger import log_action  # optional logging function
 
 from fingerprint_utils import preprocess_image, extract_minutiae_features, hash_minutiae
-
-
-
+import os
+import boto3
+from dotenv import load_dotenv
+load_dotenv()
 bp = Blueprint('api', __name__)
 
 @bp.route('/register', methods=['POST'])
@@ -35,16 +37,27 @@ def register():
     if not fingerprint_file:
         return jsonify({"error": "Fingerprint required"}), 400
 
-    # Process fingerprint to extract minutiae
+    # Process fingerprint
     image_bytes = fingerprint_file.read()
-    skeleton = preprocess_image(image_bytes)  # Same preprocessing function as encrypt
+    skeleton = preprocess_image(image_bytes)
     minutiae = extract_minutiae_features(skeleton)
-
-    # Generate a hash for the minutiae features
     fp_hash = hash_minutiae(minutiae)
 
-    # Store the fingerprint hash in the database
     table = get_fingerprint_table()
+
+    # Check if username already exists
+    if table.get_item(Key={'user_id': username}).get('Item'):
+        return jsonify({"error": "User or fingerprint already exists"}), 409
+
+    # Scan for duplicate fingerprint hash
+    response = table.scan(
+        FilterExpression='fingerprint_hash = :hval',
+        ExpressionAttributeValues={':hval': fp_hash}
+    )
+    if response.get('Items'):
+        return jsonify({"error": "Fingerprint already exists"}), 409
+
+    # Store the new user
     table.put_item(Item={'user_id': username, 'fingerprint_hash': fp_hash})
 
     return jsonify({"message": "User registered successfully"})
@@ -76,7 +89,7 @@ def encrypt():
     fp_hash = hash_minutiae(minutiae)
 
     if fp_hash != item['fingerprint_hash']:
-        log_action(user_id, "encrypt", "fail")
+        log_action(user_id, "encrypt", "fail-blocked")
         return jsonify({"error": "Fingerprint mismatch"}), 403
 
     file_bytes = data_file.read()
@@ -95,6 +108,7 @@ def encrypt():
         "nonce": cipher.nonce.hex(),
         "tag": tag.hex()
     })
+
 
 
 
@@ -123,7 +137,7 @@ def decrypt():
     fp_hash = hash_minutiae(minutiae)
 
     if fp_hash != item['fingerprint_hash']:
-        log_action(user_id, "decrypt", "fail")
+        log_action(user_id, "decrypt", "fail-blocked")
         return jsonify({"error": "Fingerprint mismatch"}), 403
 
     salt = bytes.fromhex(salt_hex)
@@ -172,3 +186,29 @@ def get_logs():
     # Sort by timestamp descending
     logs = sorted(logs, key=lambda x: x.get('timestamp', ''), reverse=True)
     return jsonify(logs)
+
+
+# Load the AWS Secret Key from the .env file
+AWS_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+
+# Secret key for JWT token generation (Can also be stored in .env)
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-default-jwt-secret-key")  # Default in case you don't have this in .env
+
+@bp.route('/admin-login', methods=['POST'])
+def admin_login():
+    # Extract secret key from the request
+    provided_secret = request.json.get('secret_key')
+
+    if not provided_secret:
+        return jsonify({"error": "Secret key required"}), 400
+
+    # Compare provided secret with the stored AWS secret
+    if provided_secret == AWS_SECRET_KEY:
+        # Generate JWT token if the secret matches
+        try:
+            token = jwt.encode({'admin': True}, JWT_SECRET_KEY, algorithm='HS256')
+            return jsonify({"message": "Access granted", "token": token}), 200
+        except Exception as e:
+            return jsonify({"error": f"Failed to generate token: {str(e)}"}), 500
+    else:
+        return jsonify({"error": "Unauthorized access"}), 403

@@ -28,29 +28,104 @@ const Decrypt = () => {
       setDecrypted(res.data.decrypted_data)
       setMessage(res.data.message)
     } catch (err) {
-      setMessage(err.response?.data?.error || "Decryption failed")
+      setMessage(err.response?.data?.error || 'Decryption failed')
     }
   }
 
   return (
     <Layout>
-      <h2>Decrypt File</h2>
-      <form onSubmit={handleDecrypt}>
-        <input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required />
-        <input type="file" onChange={e => setFingerprint(e.target.files[0])} required />
-        <textarea placeholder="Encrypted Data" value={encryptedData} onChange={e => setEncryptedData(e.target.value)} required />
-        <input placeholder="Salt (hex)" value={salt} onChange={e => setSalt(e.target.value)} required />
-        <input placeholder="Nonce (hex)" value={nonce} onChange={e => setNonce(e.target.value)} required />
-        <input placeholder="Tag (hex)" value={tag} onChange={e => setTag(e.target.value)} required />
-        <button type="submit">Decrypt</button>
-      </form>
-      <p>{message}</p>
-      {decrypted && (
-        <div>
-          <h4>Decrypted Output:</h4>
-          <pre>{decrypted}</pre>
-        </div>
-      )}
+      <div className="max-w-xl mx-auto">
+        <h2 className="text-2xl font-bold text-center mb-6">🔐 Decrypt File</h2>
+        <form
+          onSubmit={handleDecrypt}
+          className="bg-white p-6 rounded-lg shadow space-y-4"
+        >
+          <div>
+            <label className="block font-semibold">Username</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              className="w-full mt-1 p-2 border border-gray-300 rounded"
+              placeholder="Enter your username"
+            />
+          </div>
+
+          <div>
+            <label className="block font-semibold">Fingerprint Image</label>
+            <input
+              type="file"
+              onChange={(e) => setFingerprint(e.target.files[0])}
+              required
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <label className="block font-semibold">Encrypted Data</label>
+            <textarea
+              value={encryptedData}
+              onChange={(e) => setEncryptedData(e.target.value)}
+              required
+              className="w-full mt-1 p-2 border border-gray-300 rounded"
+              placeholder="Paste encrypted content here"
+              rows={3}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block font-semibold">Salt (hex)</label>
+              <input
+                type="text"
+                value={salt}
+                onChange={(e) => setSalt(e.target.value)}
+                required
+                className="w-full mt-1 p-2 border border-gray-300 rounded"
+              />
+            </div>
+            <div>
+              <label className="block font-semibold">Nonce (hex)</label>
+              <input
+                type="text"
+                value={nonce}
+                onChange={(e) => setNonce(e.target.value)}
+                required
+                className="w-full mt-1 p-2 border border-gray-300 rounded"
+              />
+            </div>
+            <div>
+              <label className="block font-semibold">Tag (hex)</label>
+              <input
+                type="text"
+                value={tag}
+                onChange={(e) => setTag(e.target.value)}
+                required
+                className="w-full mt-1 p-2 border border-gray-300 rounded"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+          >
+            Decrypt
+          </button>
+        </form>
+
+        {message && (
+          <p className="mt-4 text-center text-sm text-red-500">{message}</p>
+        )}
+
+        {decrypted && (
+          <div className="mt-6 bg-gray-100 p-4 rounded shadow">
+            <h4 className="font-bold mb-2">✅ Decrypted Output:</h4>
+            <pre className="whitespace-pre-wrap">{decrypted}</pre>
+          </div>
+        )}
+      </div>
     </Layout>
   )
 }
