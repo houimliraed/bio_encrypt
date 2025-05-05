@@ -1,33 +1,17 @@
+import os,jwt
 from flask import Blueprint, request, jsonify
 from app.crypto import hash_fingerprint, derive_key, encrypt_data, decrypt_data
-from app.db import get_fingerprint_table, insert_fingerprint,get_admin_table
+from app.db import get_fingerprint_table, insert_fingerprint,get_admin_table,get_logs_table
 from app.logger import log_action
 from fingerprint_utils import preprocess_image, extract_minutiae_features, hash_minutiae
-import os,jwt
-import hashlib
-import numpy as np
-from PIL import Image
-import io
-from flask import request, jsonify
-from app.db import get_logs_table
-from app.db import get_logs_table
-from datetime import datetime
-import cv2
-import numpy as np
-from PIL import Image
-import io
-import os
-from flask import request, jsonify
-from fingerprint_utils import preprocess_image, extract_minutiae_features, hash_minutiae
-from app.crypto import derive_key, encrypt_data  # assume you have these functions
-from app.logger import log_action  # optional logging function
 
-from fingerprint_utils import preprocess_image, extract_minutiae_features, hash_minutiae
-import os
-import boto3
 from dotenv import load_dotenv
 load_dotenv()
+
+
 bp = Blueprint('api', __name__)
+
+
 
 @bp.route('/register', methods=['POST'])
 def register():
@@ -188,12 +172,10 @@ def get_logs():
     return jsonify(logs)
 
 
-# Load the AWS Secret Key from the .env file
+
 AWS_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 
-# Secret key for JWT token generation (Can also be stored in .env)
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-default-jwt-secret-key")  # Default in case you don't have this in .env
-
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "just-jwt-secret-key")
 @bp.route('/admin-login', methods=['POST'])
 def admin_login():
     # Extract secret key from the request

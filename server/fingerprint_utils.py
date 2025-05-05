@@ -28,24 +28,16 @@ def preprocess_image(image_bytes):
 
     return thresholded
 
-import cv2
-import numpy as np
 
 def extract_minutiae_features(skeleton):
-    """
-    Extract minutiae features from a skeletonized fingerprint image.
-    This function identifies ridge endings and bifurcations using the fingerprint skeleton.
-    """
     minutiae = []
 
     # We assume the skeleton image is binary (0 and 255), with 255 representing ridges
     # The structure for minutiae detection is a 3x3 kernel to detect ridge endings or bifurcations
-
     # Create a 3x3 neighborhood for minutiae detection
     kernel = np.array([[-1, -1, -1],
                        [-1,  8, -1],
                        [-1, -1, -1]])
-
     # Iterate over each pixel in the skeletonized image
     for i in range(1, skeleton.shape[0] - 1):
         for j in range(1, skeleton.shape[1] - 1):
@@ -72,7 +64,6 @@ def extract_minutiae_features(skeleton):
 
 
 def hash_minutiae(minutiae):
- 
     # A simple way to "hash" the minutiae is to convert them to a string and hash that.
-    minutiae_str = ''.join([f"{x[0]},{x[1]}" for x in minutiae])  # Convert to a string
-    return hash(minutiae_str)  # Basic hash for demonstration
+    minutiae_str = ''.join([f"{x[0]},{x[1]}" for x in minutiae])  # Converting to a string
+    return hash(minutiae_str)  

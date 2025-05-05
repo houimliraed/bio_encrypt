@@ -1,3 +1,9 @@
-flask
+Flask
+flask-cors
 boto3
-python-dotenv
+botocore
+numpy
+opencv-python
+Pillow
+pycryptodome
+scikit-image

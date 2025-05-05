@@ -13,38 +13,18 @@ dynamodb = boto3.resource(
     aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY")
 )
 
-# ✅ Tables
+# Tables
 FINGERPRINT_TABLE_NAME = "Fingerprints"
 LOGS_TABLE_NAME = "BiocryptoLogs"
 ADMIN_TABLE_NAME = "admins"
-
-# 🧩 Get Table References
+# Get Table References
 def get_fingerprint_table():
     return dynamodb.Table(FINGERPRINT_TABLE_NAME)
-
-def get_admin_table():
-    return dynamodb.Table(ADMIN_TABLE_NAME)
-
 def get_logs_table():
     return dynamodb.Table(LOGS_TABLE_NAME)
 
-# ➕ Insert Admin Record
-def insert_admin(user_id, fingerprint_hash, timestamp):
-    try:
-        table = get_admin_table()
-        response = table.put_item(
-            Item={
-                'user_id': user_id,
-                'fingerprint_hash': fingerprint_hash,
-                'timestamp': timestamp
-            }
-        )
-        return response
-    except Exception as e:
-        print(f"Error inserting fingerprint: {e}")
-        return {"error": str(e)}
 
-# ➕ Insert Fingerprint Record
+#Insert Fingerprint Record
 def insert_fingerprint(user_id, fingerprint_hash, timestamp):
     try:
         table = get_fingerprint_table()
