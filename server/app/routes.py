@@ -1,7 +1,7 @@
 import os,jwt
 from flask import Blueprint, request, jsonify
 from app.crypto import hash_fingerprint, derive_key, encrypt_data, decrypt_data
-from app.db import get_fingerprint_table, insert_fingerprint,get_admin_table,get_logs_table
+from app.db import get_fingerprint_table, insert_fingerprint,get_logs_table
 from app.logger import log_action
 from fingerprint_utils import preprocess_image, extract_minutiae_features, hash_minutiae
 
@@ -194,3 +194,33 @@ def admin_login():
             return jsonify({"error": f"Failed to generate token: {str(e)}"}), 500
     else:
         return jsonify({"error": "Unauthorized access"}), 403
+
+
+
+@bp.route('/delete_user', methods=['POST'])
+def delete_user():
+    user_id = request.form.get('username')
+
+    if not user_id:
+        return jsonify({"error": "Username is required"}), 400
+
+    table = get_fingerprint_table()
+
+    try:
+        # Attempt to delete user from Fingerprints table
+        response = table.delete_item(
+            Key={'user_id': user_id},
+            ReturnValues='ALL_OLD'  # Returns the deleted item if it existed
+        )
+
+        # Check if the item was found and deleted
+        if 'Attributes' in response:
+            log_action(user_id, "delete_user", "success")
+            return jsonify({"message": f"User '{user_id}' deleted successfully."}), 200
+        else:
+            log_action(user_id, "delete_user", "fail", reason="User not found")
+            return jsonify({"error": "User not found"}), 404
+
+    except Exception as e:
+        log_action(user_id, "delete_user", "error", reason=str(e))
+        return jsonify({"error": str(e)}), 500

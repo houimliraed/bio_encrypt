@@ -9,6 +9,7 @@ const baseNavItems = [
   { key: 'encrypt', label: 'Encrypt' },
   { key: 'decrypt', label: 'Decrypt' },
   { key: 'admin', label: 'Admin Dashboard' },
+  { key: 'DeleteUser', label: 'DeleteUser' }
 ];
 
 const Navbar = ({ activePage, setActivePage, isRegistered }) => {

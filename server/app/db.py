@@ -66,3 +66,5 @@ def log_action(username, action, status, reason=None):
     except Exception as e:
         print(f"Error logging action: {e}")
         return {"error": str(e)}
+
+

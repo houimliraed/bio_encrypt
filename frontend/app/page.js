@@ -8,6 +8,7 @@ import Decrypt from './components/Decrypt';
 import AdminDashboard from './components/Admin';
 import AdminLogin from './components/Adminlogin';
 import Home from './components/Home';
+import DeleteUser from './components/DeleteUser';
 
 export default function HomePage() {
   const [activePage, setActivePage] = useState('home');
@@ -30,6 +31,8 @@ export default function HomePage() {
         return <Encrypt />;
       case 'decrypt':
         return <Decrypt />;
+      case 'DeleteUser':
+        return <DeleteUser/>  
       case 'admin':
         const token = localStorage.getItem('admin-token');
         if (token) {
