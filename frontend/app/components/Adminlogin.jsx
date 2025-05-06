@@ -32,7 +32,8 @@ const AdminLogin = () => {
   return (
     <Layout>
       <div className="max-w-md mx-auto mt-20 bg-white p-6 rounded shadow-md">
-        <h2 className="text-xl font-bold mb-4">Admin Login</h2>
+        <h2 className="text-xl font-bold mb-4 text-center">Admin Login</h2>
+        <h5>Access the logs if you have aws database permission</h5>
         <form onSubmit={handleLogin}>
           <input
             type="password"

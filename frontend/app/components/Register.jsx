@@ -19,10 +19,12 @@ const Register = () => {
       const res = await axios.post('http://127.0.0.1:5000/register', formData)
       setMessage(res.data.message)
       localStorage.setItem('username', username) // ✅ Save username
+
+      // After successful registration, redirect to 'encrypt' page
+      window.location.href = '/'
     } catch (err) {
       setMessage(err.response?.data?.error || "Registration failed")
     }
-    
   }
 
   return (

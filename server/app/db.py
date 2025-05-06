@@ -24,7 +24,7 @@ def get_logs_table():
     return dynamodb.Table(LOGS_TABLE_NAME)
 
 
-#Insert Fingerprint Record
+# ➕ Insert Fingerprint Record
 def insert_fingerprint(user_id, fingerprint_hash, timestamp):
     try:
         table = get_fingerprint_table()
@@ -66,5 +66,3 @@ def log_action(username, action, status, reason=None):
     except Exception as e:
         print(f"Error logging action: {e}")
         return {"error": str(e)}
-
-

@@ -9,11 +9,17 @@ const DeleteUser = () => {
 
   const handleDelete = async (e) => {
     e.preventDefault()
-    const formData = new FormData()
-    formData.append('username', username)
+
+    // Create the payload as a JSON object
+    const payload = { username }
 
     try {
-      const res = await axios.post('http://127.0.0.1:5000/delete_user', formData)
+      // Send the data as JSON with the correct content-type
+      const res = await axios.post('http://127.0.0.1:5000/delete_user', payload, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
       setMessage(res.data.message || '✅ User deleted successfully')
     } catch (err) {
       setMessage(err.response?.data?.error || '❌ Failed to delete user')

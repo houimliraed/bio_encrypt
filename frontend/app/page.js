@@ -17,7 +17,7 @@ export default function HomePage() {
   useEffect(() => {
     const storedUsername = localStorage.getItem('username');
     if (storedUsername) {
-      setIsRegistered(true); // User is registered if username exists
+      setIsRegistered(true);
     }
   }, []);
 
@@ -32,27 +32,36 @@ export default function HomePage() {
       case 'decrypt':
         return <Decrypt />;
       case 'DeleteUser':
-        return <DeleteUser/>  
+        return <DeleteUser />;
       case 'admin':
         const token = localStorage.getItem('admin-token');
-        if (token) {
-          return <AdminDashboard />;
-        } else {
-          return <AdminLogin setActivePage={setActivePage} />;
-        }
+        return token ? <AdminDashboard /> : <AdminLogin setActivePage={setActivePage} />;
       default:
         return <Home />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
-      <Navbar setActivePage={setActivePage} activePage={activePage} isRegistered={isRegistered} />
-      <main className="pt-28 px-4 flex items-center justify-center">
-        <div className="w-full max-w-2xl bg-white rounded-xl shadow-lg p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-purple-100 text-gray-800 transition-all duration-500 ease-in-out">
+      {/* Navbar */}
+      <Navbar
+        setActivePage={setActivePage}
+        activePage={activePage}
+        isRegistered={isRegistered}
+      />
+
+      {/* Main Content */}
+      <main className="pt-32 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+        <div className="w-full max-w-4xl bg-white/80 backdrop-blur-xl border border-blue-100 rounded-2xl shadow-glow p-8 animate-fadeIn transition duration-700 ease-in-out">
           {renderPage()}
         </div>
       </main>
+
+      {/* Copyright at the bottom like the Navbar */}
+      <footer className="w-full py-1 bg-gray-300 text-center text-xs text-white fixed bottom-0">
+  <p>&copy; 2025 SSIR-S. All rights reserved.</p>
+</footer>
+
     </div>
   );
 }

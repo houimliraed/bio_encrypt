@@ -4,13 +4,12 @@ from app.crypto import hash_fingerprint, derive_key, encrypt_data, decrypt_data
 from app.db import get_fingerprint_table, insert_fingerprint,get_logs_table
 from app.logger import log_action
 from fingerprint_utils import preprocess_image, extract_minutiae_features, hash_minutiae
-
+import boto3
 from dotenv import load_dotenv
 load_dotenv()
 
 
 bp = Blueprint('api', __name__)
-
 
 
 @bp.route('/register', methods=['POST'])
@@ -21,30 +20,41 @@ def register():
     if not fingerprint_file:
         return jsonify({"error": "Fingerprint required"}), 400
 
-    # Process fingerprint
     image_bytes = fingerprint_file.read()
     skeleton = preprocess_image(image_bytes)
     minutiae = extract_minutiae_features(skeleton)
     fp_hash = hash_minutiae(minutiae)
 
     table = get_fingerprint_table()
+    existing_user = table.get_item(Key={'user_id': username}).get('Item')
 
-    # Check if username already exists
-    if table.get_item(Key={'user_id': username}).get('Item'):
-        return jsonify({"error": "User or fingerprint already exists"}), 409
+    # Check if user exists
+    if existing_user:
+        # Check if blocked
+        if existing_user.get('status') == 'blocked':
+            return jsonify({"error": "You are blocked for using a different fingerprint."}), 403
 
-    # Scan for duplicate fingerprint hash
-    response = table.scan(
-        FilterExpression='fingerprint_hash = :hval',
-        ExpressionAttributeValues={':hval': fp_hash}
-    )
-    if response.get('Items'):
-        return jsonify({"error": "Fingerprint already exists"}), 409
+        # Same fingerprint hash → legit user
+        if existing_user['fingerprint_hash'] == fp_hash:
+            return jsonify({"message": "Welcome back!"}), 200
+        else:
+            # Block the user immediately
+            table.put_item(Item={
+                'user_id': username,
+                'status': 'blocked'
+            })
+            table.delete_item(Key={'user_id': username})
+            log_action(username, "register", "fail-blocked")
+            return jsonify({"error": "Fingerprint mismatch. You are now blocked."}), 409
+
+
 
     # Store the new user
     table.put_item(Item={'user_id': username, 'fingerprint_hash': fp_hash})
+    log_action(username, "register", "success")
+    return jsonify({"message": "User registered successfully"}), 201
 
-    return jsonify({"message": "User registered successfully"})
+
 
 
 
@@ -63,19 +73,32 @@ def encrypt():
         return jsonify({"error": "Fingerprint and file required"}), 400
 
     table = get_fingerprint_table()
-    item = table.get_item(Key={'user_id': user_id}).get('Item')
-    if not item:
+    user = table.get_item(Key={'user_id': user_id}).get('Item')
+
+    if not user:
         return jsonify({"error": "User not found"}), 404
+
+    # Check if user is blocked
+    if user.get('status') == 'blocked':
+        return jsonify({"error": "You are blocked for using a different fingerprint."}), 403
 
     image_bytes = fingerprint_file.read()
     skeleton = preprocess_image(image_bytes)
     minutiae = extract_minutiae_features(skeleton)
     fp_hash = hash_minutiae(minutiae)
 
-    if fp_hash != item['fingerprint_hash']:
+    if fp_hash != user['fingerprint_hash']:
+        # Mark user as blocked before deletion
+        table.put_item(Item={
+            'user_id': user_id,
+            'status': 'blocked'
+        })
+        table.delete_item(Key={'user_id': user_id})
         log_action(user_id, "encrypt", "fail-blocked")
-        return jsonify({"error": "Fingerprint mismatch"}), 403
 
+        return jsonify({"error": "Fingerprint mismatch. User deleted and blocked."}), 403
+
+    # Proceed with encryption
     file_bytes = data_file.read()
     salt = os.urandom(16)
     key = derive_key(fp_hash, salt)
@@ -85,6 +108,7 @@ def encrypt():
     ciphertext, tag = cipher.encrypt_and_digest(file_bytes)
 
     log_action(user_id, "encrypt", "success")
+
     return jsonify({
         "message": "File encrypted successfully",
         "encrypted_data": ciphertext.hex(),
@@ -96,54 +120,58 @@ def encrypt():
 
 
 
-
 @bp.route('/decrypt', methods=['POST'])
 def decrypt():
     user_id = request.form['username']
     fingerprint_file = request.files.get('fingerprint')
+    encrypted_data = request.form['encrypted_data']
+    salt = bytes.fromhex(request.form['salt'])
+    nonce = bytes.fromhex(request.form['nonce'])
+    tag = bytes.fromhex(request.form['tag'])
 
-    encrypted_hex = request.form.get('encrypted_data')
-    salt_hex = request.form.get('salt')
-    nonce_hex = request.form.get('nonce')
-    tag_hex = request.form.get('tag')
-
-    if not fingerprint_file or not encrypted_hex or not salt_hex or not nonce_hex or not tag_hex:
+    if not fingerprint_file or not encrypted_data or not salt or not nonce or not tag:
         return jsonify({"error": "All fields are required"}), 400
 
     table = get_fingerprint_table()
-    item = table.get_item(Key={'user_id': user_id}).get('Item')
-    if not item:
+    user = table.get_item(Key={'user_id': user_id}).get('Item')
+
+    if not user:
         return jsonify({"error": "User not found"}), 404
+
+    # Check if user is blocked
+    if user.get('status') == 'blocked':
+        return jsonify({"error": "You are blocked for using a different fingerprint."}), 403
 
     image_bytes = fingerprint_file.read()
     skeleton = preprocess_image(image_bytes)
     minutiae = extract_minutiae_features(skeleton)
     fp_hash = hash_minutiae(minutiae)
 
-    if fp_hash != item['fingerprint_hash']:
+    if fp_hash != user['fingerprint_hash']:
+        # Block and delete the user
+        table.put_item(Item={
+            'user_id': user_id,
+            'status': 'blocked'
+        })
+        table.delete_item(Key={'user_id': user_id})
         log_action(user_id, "decrypt", "fail-blocked")
-        return jsonify({"error": "Fingerprint mismatch"}), 403
+        return jsonify({"error": "Fingerprint mismatch. User deleted and blocked."}), 403
 
-    salt = bytes.fromhex(salt_hex)
     key = derive_key(fp_hash, salt)
 
-    encrypted_bytes = bytes.fromhex(encrypted_hex)
-    nonce = bytes.fromhex(nonce_hex)
-    tag = bytes.fromhex(tag_hex)
-
     from Crypto.Cipher import AES
-    try:
-        cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
-        decrypted_data = cipher.decrypt_and_verify(encrypted_bytes, tag)
-    except Exception as e:
-        log_action(user_id, "decrypt", "fail")
-        return jsonify({"error": "Decryption failed", "details": str(e)}), 400
+    cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
 
-    log_action(user_id, "decrypt", "success")
-    return jsonify({
-        "message": "File decrypted successfully",
-        "decrypted_data": decrypted_data.decode('utf-8', errors='ignore')
-    })
+    try:
+        decrypted_data = cipher.decrypt_and_verify(bytes.fromhex(encrypted_data), tag)
+        log_action(user_id, "decrypt", "success")
+        return jsonify({
+            "message": "Decryption successful",
+            "decrypted_data": decrypted_data.decode()
+        })
+    except Exception as e:
+        log_action(user_id, "decrypt", "fail-decryption-error")
+        return jsonify({"error": "Decryption failed"}), 400
 
 
     
@@ -197,30 +225,37 @@ def admin_login():
 
 
 
+from boto3.dynamodb.conditions import Attr
+
 @bp.route('/delete_user', methods=['POST'])
 def delete_user():
-    user_id = request.form.get('username')
-
-    if not user_id:
-        return jsonify({"error": "Username is required"}), 400
-
-    table = get_fingerprint_table()
-
     try:
-        # Attempt to delete user from Fingerprints table
-        response = table.delete_item(
-            Key={'user_id': user_id},
-            ReturnValues='ALL_OLD'  # Returns the deleted item if it existed
+        data = request.get_json()
+        username = data.get('username')
+
+        if not username:
+            return {'error': 'Username is required'}, 400
+
+        # Delete fingerprint
+        fingerprint_table = get_fingerprint_table()
+        fingerprint_table.delete_item(Key={'user_id': username})
+
+        # Scan logs table for all items with that username
+        logs_table = get_logs_table()
+        scan = logs_table.scan(
+            FilterExpression=Attr('username').eq(username)
         )
 
-        # Check if the item was found and deleted
-        if 'Attributes' in response:
-            log_action(user_id, "delete_user", "success")
-            return jsonify({"message": f"User '{user_id}' deleted successfully."}), 200
-        else:
-            log_action(user_id, "delete_user", "fail", reason="User not found")
-            return jsonify({"error": "User not found"}), 404
+        # Delete logs
+        with logs_table.batch_writer() as batch:
+            for item in scan.get('Items', []):
+                batch.delete_item(Key={
+                    'log_id': item['log_id']  # Use actual primary key from your schema
+                })
+
+        log_action("admin", "delete_user", "success")
+        return {'message': f'User {username} and all logs deleted successfully.'}
 
     except Exception as e:
-        log_action(user_id, "delete_user", "error", reason=str(e))
-        return jsonify({"error": str(e)}), 500
+        log_action("admin", "delete_user", "fail")
+        return {'error': str(e)}, 500

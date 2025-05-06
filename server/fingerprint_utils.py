@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image
 from io import BytesIO
 import matplotlib.pyplot as plt
+import hashlib
 
 def preprocess_image(image_bytes):
     """
@@ -64,6 +65,5 @@ def extract_minutiae_features(skeleton):
 
 
 def hash_minutiae(minutiae):
-    # A simple way to "hash" the minutiae is to convert them to a string and hash that.
-    minutiae_str = ''.join([f"{x[0]},{x[1]}" for x in minutiae])  # Converting to a string
-    return hash(minutiae_str)  
+    minutiae_str = ''.join([f"{x[0]},{x[1]}" for x in minutiae])
+    return hashlib.sha256(minutiae_str.encode()).hexdigest()  # hex string

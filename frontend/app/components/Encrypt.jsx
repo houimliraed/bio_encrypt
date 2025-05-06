@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Layout from '../layout'
 import axios from 'axios'
 
@@ -9,6 +9,14 @@ const Encrypt = () => {
   const [file, setFile] = useState(null)
   const [message, setMessage] = useState('')
   const [result, setResult] = useState(null)
+
+  // On component mount, check if user is logged in
+  useEffect(() => {
+    const storedUsername = localStorage.getItem('username')
+    if (storedUsername) {
+      setUsername(storedUsername)
+    }
+  }, [])
 
   const handleEncrypt = async (e) => {
     e.preventDefault()
@@ -51,15 +59,15 @@ const Encrypt = () => {
             <input
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              disabled // Make the username field read-only
               required
-              className="w-full mt-1 p-2 border border-gray-300 rounded"
-              placeholder="Enter your username"
+              className="w-full mt-1 p-2 border border-gray-300 rounded bg-gray-200"
+              placeholder="Username"
             />
           </div>
 
           <div>
-            <label className="block font-semibold">Fingerprint Image</label>
+            <label className="block font-semibold">Fingerprint</label>
             <input
               type="file"
               onChange={(e) => setFingerprint(e.target.files[0])}
@@ -69,7 +77,7 @@ const Encrypt = () => {
           </div>
 
           <div>
-            <label className="block font-semibold">File to Encrypt</label>
+            <label className="block font-semibold">Choose what to Encrypt</label>
             <input
               type="file"
               onChange={(e) => setFile(e.target.files[0])}

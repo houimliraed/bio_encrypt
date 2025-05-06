@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Layout from '../layout'
 import axios from 'axios'
 
@@ -12,6 +12,14 @@ const Decrypt = () => {
   const [tag, setTag] = useState('')
   const [message, setMessage] = useState('')
   const [decrypted, setDecrypted] = useState('')
+
+  // On component mount, check if user is logged in
+  useEffect(() => {
+    const storedUsername = localStorage.getItem('username')
+    if (storedUsername) {
+      setUsername(storedUsername)
+    }
+  }, [])
 
   const handleDecrypt = async (e) => {
     e.preventDefault()
@@ -45,15 +53,15 @@ const Decrypt = () => {
             <input
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              disabled // Make the username field read-only
               required
-              className="w-full mt-1 p-2 border border-gray-300 rounded"
-              placeholder="Enter your username"
+              className="w-full mt-1 p-2 border border-gray-300 rounded bg-gray-200"
+              placeholder="Username"
             />
           </div>
 
           <div>
-            <label className="block font-semibold">Fingerprint Image</label>
+            <label className="block font-semibold">Fingerprint</label>
             <input
               type="file"
               onChange={(e) => setFingerprint(e.target.files[0])}

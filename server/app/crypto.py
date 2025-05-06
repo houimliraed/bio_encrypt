@@ -1,13 +1,17 @@
 import hashlib
 from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Cipher import AES
-
+from Crypto.Hash import SHA256
 
 def hash_fingerprint(data):
     return hashlib.sha256(data.encode()).hexdigest()
 
+
 def derive_key(fp_hash, salt):
-    return PBKDF2(fp_hash, salt, dkLen=32)
+    # Ensure the fp_hash is bytes
+    if isinstance(fp_hash, str):
+        fp_hash = bytes.fromhex(fp_hash)
+    return PBKDF2(fp_hash, salt, dkLen=32, count=100000, hmac_hash_module=SHA256)
 
 def encrypt_data(data, key):
     cipher = AES.new(key, AES.MODE_EAX)

@@ -1,5 +1,52 @@
 @import "tailwindcss";
 
-*{
-  font-family: Outfit;
+* {
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Background for full app */
+html,
+body {
+  @apply bg-gradient-to-br from-blue-50 via-white to-purple-50 text-gray-800 scroll-smooth antialiased transition-all duration-500 ease-in-out;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #3b82f6, #9333ea);
+  border-radius: 9999px;
+}
+
+/* Glowing shadow */
+.shadow-glow {
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3), 0 2px 10px rgba(147, 51, 234, 0.15);
+}
+
+/* Fade-in animation utility */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.6s ease-out both;
+}
+
+/* Soft hover utility */
+.hover-soft {
+  @apply hover:scale-105 hover:shadow-md hover:bg-blue-100 transition-all duration-300 ease-in-out;
 }
